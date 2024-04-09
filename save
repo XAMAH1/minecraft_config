@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Загрузка файла .jar</title>
+</head>
+<body>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="text" id="fileName" name="name" placeholder="Имя файла">
+        <input type="file" id="fileInput" name="file" accept=".jar" required>
+        <button type="submit" onclick="uploadFile(event)">Загрузить файл</button>
+    </form>
+    <p><button type="submit" onclick="restartMods(event)">Обновить список модов</button></p>
+    <div id="records">
+        <!-- Записи будут отображаться здесь -->
+    </div>
+
+    <script>
+        let host = "localhost:5435"
+        function restartMods() {
+            fetch(`http://${host}/api/file`, {
+                method: 'GET',
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Ошибка при получении данных!');
+                }
+            })
+            .then(data => {
+                let mods = data.mods;
+                let recordsDiv = document.getElementById('records');
+                recordsDiv.innerHTML = ''; // Очищаем список перед обновлением
+                mods.forEach(mod => {
+                    let recordElem = document.createElement('div');
+                    let deleteButton = document.createElement('button');
+                    deleteButton.textContent = "Удалить";
+                    deleteButton.onclick = function() { deleteRecord(mod.id, mod.name); }; // Передаем id и имя для удаления
+                    recordElem.textContent = mod.name;
+                    recordElem.appendChild(deleteButton);
+                    recordsDiv.appendChild(recordElem);
+                });
+            })
+            .catch(error => console.error('Произошла ошибка:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            restartMods();
+        });
+
+        function uploadFile(event) {
+            event.preventDefault();
+            let fileInput = document.getElementById('fileInput');
+            let fileName = document.getElementById('fileName').value;
+            fileName = fileInput.value;
+            if (!fileInput.files.length || !fileName) {
+                alert('Пожалуйста, выберите файл и введите его название.');
+                return;
+            }
+            let formData = new FormData();
+            formData.append('name', fileName);
+            formData.append('file', fileInput.files[0]);
+            fetch(`http://${host}/api/file`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                return response.json().then(data => {
+                    restartMods();
+                    if(response.ok){
+                        alert("Успешное добавление мода");
+                    } else {
+                    alert("Ошибка добавления мода");
+                    }
+                });
+            })
+            .catch(error => alert("Работа с модом выполнена успешно"));
+        }
+
+        function deleteRecord(id, name) {
+            let confirmation = confirm("Вы уверены, что хотите удалить запись: " + name + "?");
+            if (confirmation) {
+                fetch(`http://${host}/api/file`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ name: name }), // Передаем имя для удаления
+headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else {
+                        throw new Error('Ошибка при удалении данных!');
+                    }
+                })
+                .then(data => {
+                    restartMods();
+                    alert("Запись успешно удалена.");
+                    // После успешного удаления обновляем список модов
+
+                })
+                .catch(error => console.error('Произошла ошибка при удалении:', error));
+            }
+        }
+    </script>
+</body>
+</html>

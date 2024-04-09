@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-time Updates</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.2/socket.io.js"></script>
+</head>
+<body>
+    <h1>Real-time Updates</h1>
+    <textarea id="commandInput"></textarea>
+    <button onclick="sendCommand()">Отправить</button>
+    <div id="output"></div>
+
+    <script>
+        var socket = io();
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
+        socket.on('message', function(data) {
+            document.getElementById('output').innerText += data + '\n';
+        });
+
+        function sendCommand() {
+            var command = document.getElementById('commandInput').value;
+            socket.emit('command', { command: command });
+            document.getElementById('commandInput').value = '';
+        }
+    </script>
+</body>
+</html>
